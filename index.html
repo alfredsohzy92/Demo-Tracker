@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Retail Demo Tracker Pro</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        :root { --primary: #034EA2; --success: #28a745; --gray: #f4f4f9; }
+        body { font-family: -apple-system, Sans-Serif; margin: 0; background: var(--gray); padding-bottom: 30px; }
+        header { background: var(--primary); color: white; padding: 15px; text-align: center; font-weight: bold; position: sticky; top: 0; z-index: 100; }
+        
+        #reader { width: 100%; background: black; min-height: 250px; }
+        .input-section { padding: 15px; background: white; border-bottom: 2px solid #ddd; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        
+        input { width: 100%; padding: 12px; margin: 5px 0 10px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        .btn-row { display: flex; gap: 8px; }
+        
+        button { flex: 1; padding: 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; transition: opacity 0.2s; }
+        button:active { opacity: 0.7; }
+        
+        .btn-save { background: var(--success); color: white; width: 100%; margin-top: 10px; font-size: 18px; }
+        .btn-download { background: #6f42c1; color: white; }
+        .btn-copy { background: #007bff; color: white; }
+        .btn-clear { background: #dc3545; color: white; margin-top: 20px; }
+
+        .history-section { padding: 15px; }
+        .table-container { overflow-x: auto; max-height: 300px; border-radius: 8px; border: 1px solid #ddd; }
+        table { width: 100%; border-collapse: collapse; background: white; font-size: 12px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background: #eee; position: sticky; top: 0; }
+        tr:nth-child(even) { background: #fafafa; }
+    </style>
+</head>
+<body>
+
+<header>RETAIL DEMO TRACKER</header>
+
+<div id="reader"></div>
+
+<div class="input-section">
+    <label style="font-size: 12px; font-weight: bold;">SERIAL / IMEI</label>
+    <input type="text" id="imei" placeholder="Scanning...">
+    
+    <div class="btn-row">
+        <input type="text" id="model" placeholder="Model">
+        <input type="text" id="color" placeholder="Color">
+    </div>
+    
+    <div class="btn-row">
+        <input type="text" id="storeId" placeholder="Store ID">
+        <input type="text" id="location" placeholder="Zone/Table">
+    </div>
+    
+    <button class="btn-save" onclick="saveDevice()">SAVE & NEXT</button>
+</div>
+
+<div class="history-section">
+    <div class="btn-row" style="margin-bottom: 15px;">
+        <button class="btn-download" onclick="downloadCSV()">DOWNLOAD CSV</button>
+        <button class="btn-copy" onclick="copyToClipboard()">COPY TO CLIPBOARD</button>
+    </div>
+
+    <input type="text" id="filter" placeholder="Search history..." onkeyup="renderTable()">
+    
+    <div class="table-container">
+        <table id="deviceTable">
+            <thead>
+                <tr>
+                    <th>Store</th>
+                    <th>Model</th>
+                    <th>IMEI</th>
+                    <th>Zone</th>
+                </tr>
+            </thead>
+            <tbody id="deviceBody"></tbody>
+        </table>
+    </div>
+
+    <button class="btn-clear" onclick="clearData()">WIPE ALL DATA</button>
+</div>
+
+<script>
+    let devices = JSON.parse(localStorage.getItem('demoDevices') || '[]');
+    const beep = new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFRm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YV9vT18AAAAA'); // Short procedural beep
+
+    // Initialize Scanner
+    const html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 15, qrbox: {width: 250, height: 150} });
+    
+    html5QrcodeScanner.render((text) => {
+        if (document.getElementById('imei').value !== text) {
+            document.getElementById('imei').value = text;
+            beep.play(); 
+            if (navigator.vibrate) navigator.vibrate(50);
+        }
+    });
+
+    function saveDevice() {
+        const imeiField = document.getElementById('imei');
+        const modelField = document.getElementById('model');
+        const colorField = document.getElementById('color');
+        const storeField = document.getElementById('storeId');
+        const locField = document.getElementById('location');
+
+        if (!imeiField.value) return alert("Scan a device first");
+
+        const device = {
+            imei: imeiField.value,
+            model: modelField.value,
+            color: colorField.value,
+            storeId: storeField.value,
+            location: locField.value,
+            timestamp: new Date().toISOString().split('T')[0]
+        };
+
+        devices.unshift(device);
+        localStorage.setItem('demoDevices', JSON.stringify(devices));
+        
+        // Momentum: Clear only device-specific info
+        imeiField.value = '';
+        modelField.value = '';
+        colorField.value = '';
+        
+        if (navigator.vibrate) navigator.vibrate([30, 30, 30]); // Success pattern
+        renderTable();
+    }
+
+    function renderTable() {
+        const filter = document.getElementById('filter').value.toLowerCase();
+        const tbody = document.getElementById('deviceBody');
+        tbody.innerHTML = '';
+
+        devices.filter(d => 
+            d.storeId.toLowerCase().includes(filter) || 
+            d.model.toLowerCase().includes(filter) ||
+            d.imei.toLowerCase().includes(filter)
+        ).forEach(d => {
+            tbody.innerHTML += `<tr>
+                <td>${d.storeId}</td>
+                <td>${d.model}</td>
+                <td>${d.imei}</td>
+                <td>${d.location}</td>
+            </tr>`;
+        });
+    }
+
+    function generateCSV() {
+        if (devices.length === 0) return null;
+        const headers = "Date,Store_ID,Model,Color,IMEI_Serial,Location\n";
+        const rows = devices.map(d => `${d.timestamp},${d.storeId},${d.model},${d.color},${d.imei},${d.location}`).join("\n");
+        return headers + rows;
+    }
+
+    function downloadCSV() {
+        const csvContent = generateCSV();
+        if (!csvContent) return alert("No data to export");
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        
+        const storeName = document.getElementById('storeId').value || 'Retail';
+        const date = new Date().toISOString().slice(0,10);
+        
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Demo_Audit_${storeName}_${date}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function copyToClipboard() {
+        const csv = generateCSV();
+        if (!csv) return;
+        navigator.clipboard.writeText(csv).then(() => alert("Copied to clipboard!"));
+    }
+
+    function clearData() {
+        if (confirm("Permanently delete all stored scans?")) {
+            devices = [];
+            localStorage.removeItem('demoDevices');
+            renderTable();
+        }
+    }
+
+    renderTable();
+</script>
+
+</body>
+</html>
