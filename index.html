@@ -7,29 +7,33 @@
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         :root { --primary: #034EA2; --success: #28a745; --gray: #f4f4f9; }
-        body { font-family: -apple-system, Sans-Serif; margin: 0; background: var(--gray); padding-bottom: 30px; }
+        body { font-family: -apple-system, Sans-Serif; margin: 0; background: var(--gray); padding-bottom: 50px; }
         header { background: var(--primary); color: white; padding: 15px; text-align: center; font-weight: bold; position: sticky; top: 0; z-index: 100; }
         
         #reader { width: 100%; background: black; min-height: 250px; }
-        .input-section { padding: 15px; background: white; border-bottom: 2px solid #ddd; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .input-section { padding: 15px; background: white; border-bottom: 2px solid #ddd; display: flex; flex-direction: column; }
         
-        input { width: 100%; padding: 12px; margin: 5px 0 10px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        .btn-row { display: flex; gap: 8px; }
-        
-        button { flex: 1; padding: 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; transition: opacity 0.2s; }
-        button:active { opacity: 0.7; }
-        
-        .btn-save { background: var(--success); color: white; width: 100%; margin-top: 10px; font-size: 18px; }
-        .btn-download { background: #6f42c1; color: white; }
-        .btn-copy { background: #007bff; color: white; }
-        .btn-clear { background: #dc3545; color: white; margin-top: 20px; }
+        /* Save Button at the Top for thumb accessibility */
+        .btn-save { background: var(--success); color: white; width: 100%; padding: 18px; border: none; border-radius: 8px; font-weight: bold; font-size: 18px; margin-bottom: 15px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn-save:active { background: #218838; transform: translateY(2px); }
 
+        label { font-size: 11px; font-weight: bold; color: #666; text-transform: uppercase; margin-top: 5px; }
+        input { width: 100%; padding: 12px; margin: 4px 0 10px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        
+        .btn-row { display: flex; gap: 8px; }
+        .btn-row div { flex: 1; display: flex; flex-direction: column; }
+        
         .history-section { padding: 15px; }
-        .table-container { overflow-x: auto; max-height: 300px; border-radius: 8px; border: 1px solid #ddd; }
+        .table-container { overflow-x: auto; max-height: 350px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 15px; }
         table { width: 100%; border-collapse: collapse; background: white; font-size: 12px; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
         th { background: #eee; position: sticky; top: 0; }
-        tr:nth-child(even) { background: #fafafa; }
+
+        .action-buttons { padding: 0 15px 20px 15px; display: flex; flex-direction: column; gap: 10px; }
+        .btn-secondary { padding: 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; color: white; }
+        .btn-download { background: #6f42c1; }
+        .btn-copy { background: #007bff; }
+        .btn-clear { background: #dc3545; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -39,32 +43,40 @@
 <div id="reader"></div>
 
 <div class="input-section">
-    <label style="font-size: 12px; font-weight: bold;">SERIAL / IMEI</label>
-    <input type="text" id="imei" placeholder="Scanning...">
+    <button class="btn-save" onclick="saveDevice()">SAVE & NEXT SCAN</button>
+
+    <label>Serial / IMEI</label>
+    <input type="text" id="imei" placeholder="Scanning/Type here...">
     
     <div class="btn-row">
-        <input type="text" id="model" placeholder="Model">
-        <input type="text" id="color" placeholder="Color">
+        <div>
+            <label>Model</label>
+            <input type="text" id="model" placeholder="e.g. S24 Ultra">
+        </div>
+        <div>
+            <label>Color</label>
+            <input type="text" id="color" placeholder="e.g. Titanium">
+        </div>
     </div>
     
     <div class="btn-row">
-        <input type="text" id="storeId" placeholder="Store ID">
-        <input type="text" id="location" placeholder="Zone/Table">
+        <div>
+            <label>Store Name</label>
+            <input type="text" id="storeName" placeholder="Enter Store">
+        </div>
+        <div>
+            <label>Zone / Table</label>
+            <input type="text" id="location" placeholder="e.g. Table A1">
+        </div>
     </div>
-    
-    <button class="btn-save" onclick="saveDevice()">SAVE & NEXT</button>
 </div>
 
 <div class="history-section">
-    <div class="btn-row" style="margin-bottom: 15px;">
-        <button class="btn-download" onclick="downloadCSV()">DOWNLOAD CSV</button>
-        <button class="btn-copy" onclick="copyToClipboard()">COPY TO CLIPBOARD</button>
-    </div>
-
-    <input type="text" id="filter" placeholder="Search history..." onkeyup="renderTable()">
+    <label>Search History</label>
+    <input type="text" id="filter" placeholder="Filter by store, model, or IMEI..." onkeyup="renderTable()">
     
     <div class="table-container">
-        <table id="deviceTable">
+        <table>
             <thead>
                 <tr>
                     <th>Store</th>
@@ -76,15 +88,18 @@
             <tbody id="deviceBody"></tbody>
         </table>
     </div>
+</div>
 
-    <button class="btn-clear" onclick="clearData()">WIPE ALL DATA</button>
+<div class="action-buttons">
+    <button class="btn-secondary btn-download" onclick="downloadCSV()">DOWNLOAD CSV FILE</button>
+    <button class="btn-secondary btn-copy" onclick="copyToClipboard()">COPY ALL FOR EXCEL</button>
+    <button class="btn-secondary btn-clear" onclick="clearData()">WIPE ALL LOCAL DATA</button>
 </div>
 
 <script>
     let devices = JSON.parse(localStorage.getItem('demoDevices') || '[]');
-    const beep = new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFRm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YV9vT18AAAAA'); // Short procedural beep
+    const beep = new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFRm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YV9vT18AAAAA');
 
-    // Initialize Scanner
     const html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 15, qrbox: {width: 250, height: 150} });
     
     html5QrcodeScanner.render((text) => {
@@ -96,32 +111,32 @@
     });
 
     function saveDevice() {
-        const imeiField = document.getElementById('imei');
-        const modelField = document.getElementById('model');
-        const colorField = document.getElementById('color');
-        const storeField = document.getElementById('storeId');
-        const locField = document.getElementById('location');
+        const imeiVal = document.getElementById('imei').value;
+        const modelVal = document.getElementById('model').value;
+        const colorVal = document.getElementById('color').value;
+        const storeVal = document.getElementById('storeName').value;
+        const locVal = document.getElementById('location').value;
 
-        if (!imeiField.value) return alert("Scan a device first");
+        if (!imeiVal) return alert("Please scan or enter an IMEI first.");
 
         const device = {
-            imei: imeiField.value,
-            model: modelField.value,
-            color: colorField.value,
-            storeId: storeField.value,
-            location: locField.value,
+            imei: imeiVal,
+            model: modelVal,
+            color: colorVal,
+            storeName: storeVal,
+            location: locVal,
             timestamp: new Date().toISOString().split('T')[0]
         };
 
         devices.unshift(device);
         localStorage.setItem('demoDevices', JSON.stringify(devices));
         
-        // Momentum: Clear only device-specific info
-        imeiField.value = '';
-        modelField.value = '';
-        colorField.value = '';
+        // Reset device-specific info but KEEP Store and Zone for continuous flow
+        document.getElementById('imei').value = '';
+        document.getElementById('model').value = '';
+        document.getElementById('color').value = '';
         
-        if (navigator.vibrate) navigator.vibrate([30, 30, 30]); // Success pattern
+        if (navigator.vibrate) navigator.vibrate([30, 30, 30]);
         renderTable();
     }
 
@@ -131,12 +146,12 @@
         tbody.innerHTML = '';
 
         devices.filter(d => 
-            d.storeId.toLowerCase().includes(filter) || 
+            d.storeName.toLowerCase().includes(filter) || 
             d.model.toLowerCase().includes(filter) ||
             d.imei.toLowerCase().includes(filter)
         ).forEach(d => {
             tbody.innerHTML += `<tr>
-                <td>${d.storeId}</td>
+                <td>${d.storeName}</td>
                 <td>${d.model}</td>
                 <td>${d.imei}</td>
                 <td>${d.location}</td>
@@ -146,25 +161,20 @@
 
     function generateCSV() {
         if (devices.length === 0) return null;
-        const headers = "Date,Store_ID,Model,Color,IMEI_Serial,Location\n";
-        const rows = devices.map(d => `${d.timestamp},${d.storeId},${d.model},${d.color},${d.imei},${d.location}`).join("\n");
+        const headers = "Date,Store_Name,Model,Color,IMEI_Serial,Location\n";
+        const rows = devices.map(d => `${d.timestamp},${d.storeName},${d.model},${d.color},${d.imei},${d.location}`).join("\n");
         return headers + rows;
     }
 
     function downloadCSV() {
         const csvContent = generateCSV();
         if (!csvContent) return alert("No data to export");
-
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
-        
-        const storeName = document.getElementById('storeId').value || 'Retail';
-        const date = new Date().toISOString().slice(0,10);
-        
+        const storeRef = document.getElementById('storeName').value || 'Audit';
         link.setAttribute("href", url);
-        link.setAttribute("download", `Demo_Audit_${storeName}_${date}.csv`);
-        link.style.visibility = 'hidden';
+        link.setAttribute("download", `${storeRef}_${new Date().toISOString().slice(0,10)}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -177,7 +187,7 @@
     }
 
     function clearData() {
-        if (confirm("Permanently delete all stored scans?")) {
+        if (confirm("This will delete all scanned history. Proceed?")) {
             devices = [];
             localStorage.removeItem('demoDevices');
             renderTable();
