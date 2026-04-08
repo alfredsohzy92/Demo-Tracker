@@ -10,8 +10,8 @@
         body { font-family: -apple-system, Sans-Serif; margin: 0; background: var(--gray); padding-bottom: 50px; }
         header { background: var(--primary); color: white; padding: 12px; text-align: center; font-weight: bold; position: sticky; top: 0; z-index: 100; font-size: 14px; }
         
-        /* Fixed Viewfinder - Adjusted to show the box properly */
-        #reader { width: 100%; background: black; min-height: 220px; }
+        /* Fixed Viewfinder height */
+        #reader { width: 100%; background: #000; min-height: 200px; }
         
         .input-section { padding: 12px; background: white; border-bottom: 2px solid #ddd; }
         
@@ -19,7 +19,7 @@
         .btn-save:active { transform: scale(0.98); }
 
         label { font-size: 10px; font-weight: bold; color: #888; text-transform: uppercase; }
-        input { width: 100%; padding: 10px; margin: 2px 0 8px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 15px; background: #fff; }
+        input { width: 100%; padding: 10px; margin: 2px 0 8px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 15px; }
         
         .btn-row { display: flex; gap: 6px; }
         .btn-row div { flex: 1; }
@@ -31,10 +31,10 @@
         th, td { border: 1px solid #ddd; padding: 8px 4px; text-align: left; word-wrap: break-word; }
         th { background: #f0f0f0; position: sticky; top: 0; font-size: 10px; }
         
-        .editable { background: #fffdf0; }
+        .editable { background: #fffdf0; min-height: 1.2em; display: block; }
 
         .action-buttons { padding: 15px; display: flex; flex-direction: column; gap: 8px; }
-        .btn-sec { padding: 12px; border: none; border-radius: 8px; font-weight: bold; font-size: 13px; color: white; text-align: center; text-decoration: none; }
+        .btn-sec { padding: 12px; border: none; border-radius: 8px; font-weight: bold; font-size: 13px; color: white; text-align: center; }
         .btn-download { background: #6f42c1; }
         .btn-copy { background: #007bff; }
         .btn-clear { background: #dc3545; margin-top: 10px; }
@@ -93,68 +93,29 @@
     let devices = JSON.parse(localStorage.getItem('demoDevices') || '[]');
     const beep = new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFRm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YV9vT18AAAAA');
 
-    // Adjusted Scan Box Logic
-    const scanner = new Html5QrcodeScanner("reader", { 
-        fps: 20, 
-        qrbox: (viewfinderWidth, viewfinderHeight) => {
-            return {
-                width: viewfinderWidth * 0.8,
-                height: 120 // Fixed height for the scan box to keep it visible in short view
-            };
-        },
-        aspectRatio: 1.0
+    // Robust Scanner Init
+    const html5QrcodeScanner = new Html5QrcodeScanner("reader", { 
+        fps: 10, 
+        qrbox: { width: 250, height: 120 }, // Force a standard box size
+        showTorchButtonIfSupported: true
     });
 
-    scanner.render((text) => {
-        if (document.getElementById('imei').value !== text) {
-            document.getElementById('imei').value = text;
+    html5QrcodeScanner.render(onScanSuccess);
+
+    function onScanSuccess(decodedText) {
+        const imeiInput = document.getElementById('imei');
+        if (imeiInput.value !== decodedText) {
+            imeiInput.value = decodedText;
             beep.play(); 
             if (navigator.vibrate) navigator.vibrate(50);
         }
-    });
+    }
 
     function saveDevice() {
         const imeiVal = document.getElementById('imei').value;
-        if (!imeiVal) return;
+        if (!imeiVal) return alert("Scan or enter an IMEI first!");
 
         const device = {
             id: Date.now(),
             imei: imeiVal,
-            model: document.getElementById('model').value,
-            color: document.getElementById('color').value,
-            storeName: document.getElementById('storeName').value,
-            location: document.getElementById('location').value,
-            timestamp: new Date().toISOString().split('T')[0]
-        };
-
-        devices.unshift(device);
-        updateStorage();
-        
-        document.getElementById('imei').value = '';
-        document.getElementById('model').value = '';
-        document.getElementById('color').value = '';
-        
-        if (navigator.vibrate) navigator.vibrate([30, 30]);
-        renderTable();
-    }
-
-    function editCell(id, field, value) {
-        const index = devices.findIndex(d => d.id === id);
-        if (index !== -1) {
-            devices[index][field] = value.trim();
-            updateStorage();
-        }
-    }
-
-    function updateStorage() {
-        localStorage.setItem('demoDevices', JSON.stringify(devices));
-    }
-
-    function renderTable() {
-        const filter = document.getElementById('filter').value.toLowerCase();
-        const tbody = document.getElementById('deviceBody');
-        tbody.innerHTML = '';
-
-        devices.filter(d => 
-            d.storeName.toLowerCase().includes(filter) || 
-            d.model.
+            model: document.
