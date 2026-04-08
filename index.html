@@ -3,119 +3,235 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Retail Demo Tracker Pro</title>
+    <title>Samsung Retail Audit</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        :root { --primary: #034EA2; --success: #28a745; --gray: #f4f4f9; }
-        body { font-family: -apple-system, Sans-Serif; margin: 0; background: var(--gray); padding-bottom: 50px; }
-        header { background: var(--primary); color: white; padding: 12px; text-align: center; font-weight: bold; position: sticky; top: 0; z-index: 100; font-size: 14px; }
+        :root { --samsung-blue: #034EA2; --success: #28a745; --danger: #dc3545; }
+        body { font-family: -apple-system, sans-serif; margin: 0; background: #f0f2f5; padding-bottom: 40px; }
+        header { background: var(--samsung-blue); color: white; padding: 12px; text-align: center; font-weight: 700; font-size: 14px; position: sticky; top: 0; z-index: 1000; }
         
-        /* Fixed Viewfinder height */
+        /* Fixed Camera Area */
         #reader { width: 100%; background: #000; min-height: 200px; }
-        
-        .input-section { padding: 12px; background: white; border-bottom: 2px solid #ddd; }
-        
-        .btn-save { background: var(--success); color: white; width: 100%; padding: 16px; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; margin-bottom: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .btn-save:active { transform: scale(0.98); }
+        .cam-controls { padding: 10px; background: #333; display: flex; justify-content: center; }
+        #startBtn { padding: 10px 25px; border-radius: 20px; border: none; background: white; font-weight: bold; color: #333; cursor: pointer; }
 
-        label { font-size: 10px; font-weight: bold; color: #888; text-transform: uppercase; }
-        input { width: 100%; padding: 10px; margin: 2px 0 8px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 15px; }
-        
-        .btn-row { display: flex; gap: 6px; }
-        .btn-row div { flex: 1; }
-        
-        .history-section { padding: 12px; }
-        .table-container { overflow-x: auto; max-height: 400px; border-radius: 6px; border: 1px solid #ddd; }
-        
-        table { width: 100%; border-collapse: collapse; background: white; font-size: 11px; table-layout: fixed; }
-        th, td { border: 1px solid #ddd; padding: 8px 4px; text-align: left; word-wrap: break-word; }
-        th { background: #f0f0f0; position: sticky; top: 0; font-size: 10px; }
-        
-        .editable { background: #fffdf0; min-height: 1.2em; display: block; }
+        /* Form Layout */
+        .input-card { padding: 15px; background: white; border-bottom: 2px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .btn-save { background: var(--success); color: white; width: 100%; padding: 18px; border: none; border-radius: 12px; font-weight: bold; font-size: 18px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3); }
+        .btn-save:active { background: #1e7e34; transform: scale(0.98); }
 
-        .action-buttons { padding: 15px; display: flex; flex-direction: column; gap: 8px; }
-        .btn-sec { padding: 12px; border: none; border-radius: 8px; font-weight: bold; font-size: 13px; color: white; text-align: center; }
-        .btn-download { background: #6f42c1; }
+        label { font-size: 10px; font-weight: bold; color: #777; text-transform: uppercase; display: block; margin-bottom: 2px; }
+        input { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; background: #fcfcfc; }
+        
+        .row { display: flex; gap: 8px; }
+        .row div { flex: 1; }
+
+        /* History Table */
+        .history-card { padding: 12px; }
+        .table-container { overflow-x: auto; background: white; border-radius: 8px; border: 1px solid #ddd; max-height: 350px; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed; }
+        th, td { border: 1px solid #eee; padding: 10px 5px; text-align: left; word-wrap: break-word; }
+        th { background: #f8f9fa; position: sticky; top: 0; z-index: 10; color: #555; }
+        .editable { background: #fffdf0; border-radius: 4px; border: 1px solid transparent; }
+        .editable:focus { border: 1px solid var(--samsung-blue); outline: none; background: #fff; }
+
+        /* Utility Buttons */
+        .util-area { padding: 20px 15px; display: flex; flex-direction: column; gap: 10px; }
+        .btn-util { padding: 15px; border: none; border-radius: 8px; color: white; font-weight: bold; font-size: 14px; text-align: center; }
+        .btn-csv { background: #6f42c1; }
         .btn-copy { background: #007bff; }
-        .btn-clear { background: #dc3545; margin-top: 10px; }
+        .btn-wipe { background: var(--danger); margin-top: 15px; opacity: 0.8; }
     </style>
 </head>
 <body>
 
-<header>RETAIL DEMO TRACKER</header>
+<header>DEMO ASSET TRACKER</header>
 
 <div id="reader"></div>
+<div class="cam-controls">
+    <button id="startBtn" onclick="toggleScanner()">START SCANNER</button>
+</div>
 
-<div class="input-section">
-    <button class="btn-save" onclick="saveDevice()">SAVE & NEXT SCAN</button>
+<div class="input-card">
+    <button class="btn-save" onclick="handleSave()">SAVE & NEXT SCAN</button>
 
     <label>Serial / IMEI</label>
-    <input type="text" id="imei">
+    <input type="text" id="imei_field" autocomplete="off">
     
-    <div class="btn-row">
-        <div><label>Model</label><input type="text" id="model"></div>
-        <div><label>Color</label><input type="text" id="color"></div>
+    <div class="row">
+        <div><label>Model</label><input type="text" id="model_field"></div>
+        <div><label>Color</label><input type="text" id="color_field"></div>
     </div>
     
-    <div class="btn-row">
-        <div><label>Store Name</label><input type="text" id="storeName"></div>
-        <div><label>Zone / Table</label><input type="text" id="location"></div>
+    <div class="row">
+        <div><label>Store Name</label><input type="text" id="store_field"></div>
+        <div><label>Zone / Table</label><input type="text" id="zone_field"></div>
     </div>
 </div>
 
-<div class="history-section">
-    <label>Search / Filter</label>
-    <input type="text" id="filter" onkeyup="renderTable()">
+<div class="history-card">
+    <label>History & Search</label>
+    <input type="text" id="search_input" onkeyup="renderTable()">
     
     <div class="table-container">
         <table>
             <thead>
                 <tr>
-                    <th style="width: 20%">Store</th>
-                    <th style="width: 20%">Model</th>
-                    <th style="width: 30%">IMEI</th>
-                    <th style="width: 15%">Color</th>
-                    <th style="width: 15%">Zone</th>
+                    <th style="width:20%">Store</th>
+                    <th style="width:20%">Model</th>
+                    <th style="width:30%">IMEI/SN</th>
+                    <th style="width:15%">Color</th>
+                    <th style="width:15%">Zone</th>
                 </tr>
             </thead>
-            <tbody id="deviceBody"></tbody>
+            <tbody id="table_body"></tbody>
         </table>
     </div>
 </div>
 
-<div class="action-buttons">
-    <button class="btn-sec btn-download" onclick="downloadCSV()">DOWNLOAD CSV</button>
-    <button class="btn-sec btn-copy" onclick="copyToClipboard()">COPY FOR EXCEL</button>
-    <button class="btn-sec btn-clear" onclick="clearData()">WIPE ALL DATA</button>
+<div class="util-area">
+    <button class="btn-util btn-csv" onclick="exportToCSV()">DOWNLOAD CSV FILE</button>
+    <button class="btn-util btn-copy" onclick="copyToExcel()">COPY FOR EXCEL</button>
+    <button class="btn-util btn-wipe" onclick="fullWipe()">WIPE ALL LOCAL DATA</button>
 </div>
 
 <script>
-    let devices = JSON.parse(localStorage.getItem('demoDevices') || '[]');
-    const beep = new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFRm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YV9vT18AAAAA');
+    // --- Data Management ---
+    let dataList = [];
+    try {
+        const raw = localStorage.getItem('samsung_demo_audit');
+        dataList = raw ? JSON.parse(raw) : [];
+    } catch(e) { 
+        console.error("Storage Error", e);
+        dataList = []; 
+    }
 
-    // Robust Scanner Init
-    const html5QrcodeScanner = new Html5QrcodeScanner("reader", { 
-        fps: 10, 
-        qrbox: { width: 250, height: 120 }, // Force a standard box size
-        showTorchButtonIfSupported: true
-    });
+    // --- Scanner Logic ---
+    let scannerInstance = null;
+    
+    function toggleScanner() {
+        const btn = document.getElementById('startBtn');
+        
+        if (scannerInstance) {
+            scannerInstance.stop().then(() => {
+                scannerInstance = null;
+                btn.innerText = "START SCANNER";
+                document.getElementById('reader').innerHTML = "";
+            });
+            return;
+        }
 
-    html5QrcodeScanner.render(onScanSuccess);
+        scannerInstance = new Html5Qrcode("reader");
+        const config = { fps: 15, qrbox: { width: 250, height: 120 } };
 
-    function onScanSuccess(decodedText) {
-        const imeiInput = document.getElementById('imei');
-        if (imeiInput.value !== decodedText) {
-            imeiInput.value = decodedText;
-            beep.play(); 
+        scannerInstance.start({ facingMode: "environment" }, config, (text) => {
+            document.getElementById('imei_field').value = text;
             if (navigator.vibrate) navigator.vibrate(50);
+            // Vibe-code check: remove beep audio if it causes lag, sticking to haptics
+        }).catch(err => {
+            alert("Camera Access Denied or Browser not Secure (HTTPS required)");
+            scannerInstance = null;
+        });
+
+        btn.innerText = "STOP SCANNER";
+    }
+
+    // --- Core Actions ---
+    function handleSave() {
+        const imei = document.getElementById('imei_field').value;
+        if (!imei) return alert("Missing IMEI/Serial Number");
+
+        const entry = {
+            id: Date.now(),
+            imei: imei,
+            model: document.getElementById('model_field').value,
+            color: document.getElementById('color_field').value,
+            store: document.getElementById('store_field').value,
+            zone: document.getElementById('zone_field').value,
+            time: new Date().toLocaleDateString()
+        };
+
+        dataList.unshift(entry);
+        sync();
+        
+        // Momentum: Clear only the device fields
+        document.getElementById('imei_field').value = "";
+        document.getElementById('model_field').value = "";
+        document.getElementById('color_field').value = "";
+        
+        renderTable();
+        if (navigator.vibrate) navigator.vibrate([40, 40]);
+    }
+
+    function sync() {
+        localStorage.setItem('samsung_demo_audit', JSON.stringify(dataList));
+    }
+
+    function renderTable() {
+        const filter = document.getElementById('search_input').value.toLowerCase();
+        const body = document.getElementById('table_body');
+        body.innerHTML = "";
+
+        dataList.filter(d => 
+            d.imei.toLowerCase().includes(filter) || 
+            d.store.toLowerCase().includes(filter) ||
+            d.model.toLowerCase().includes(filter)
+        ).forEach(d => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="editable" contenteditable="true" onblur="updateRow(${d.id}, 'store', this.innerText)">${d.store}</td>
+                <td class="editable" contenteditable="true" onblur="updateRow(${d.id}, 'model', this.innerText)">${d.model}</td>
+                <td>${d.imei}</td>
+                <td class="editable" contenteditable="true" onblur="updateRow(${d.id}, 'color', this.innerText)">${d.color}</td>
+                <td class="editable" contenteditable="true" onblur="updateRow(${d.id}, 'zone', this.innerText)">${d.zone}</td>
+            `;
+            body.appendChild(tr);
+        });
+    }
+
+    function updateRow(id, key, val) {
+        const i = dataList.findIndex(d => d.id === id);
+        if (i !== -1) {
+            dataList[i][key] = val.trim();
+            sync();
         }
     }
 
-    function saveDevice() {
-        const imeiVal = document.getElementById('imei').value;
-        if (!imeiVal) return alert("Scan or enter an IMEI first!");
+    // --- Utilities ---
+    function exportToCSV() {
+        if (dataList.length === 0) return alert("No data to export");
+        let csv = "Date,Store,Model,IMEI_Serial,Color,Zone\n";
+        dataList.forEach(d => {
+            csv += `${d.time},"${d.store}","${d.model}","${d.imei}","${d.color}","${d.zone}"\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Demo_Audit_${new Date().toISOString().slice(0,10)}.csv`;
+        a.click();
+    }
 
-        const device = {
-            id: Date.now(),
-            imei: imeiVal,
-            model: document.
+    function copyToExcel() {
+        if (dataList.length === 0) return;
+        let tabData = "Store\tModel\tIMEI\tColor\tZone\n";
+        dataList.forEach(d => {
+            tabData += `${d.store}\t${d.model}\t${d.imei}\t${d.color}\t${d.zone}\n`;
+        });
+        navigator.clipboard.writeText(tabData).then(() => alert("Copied! Paste into Excel now."));
+    }
+
+    function fullWipe() {
+        if (confirm("THIS WILL DELETE ALL SCAN DATA. Are you sure?")) {
+            dataList = [];
+            localStorage.removeItem('samsung_demo_audit');
+            renderTable();
+        }
+    }
+
+    // First load
+    renderTable();
+</script>
+
+</body>
+</html>
